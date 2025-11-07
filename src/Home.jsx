@@ -4,6 +4,9 @@ import "./Home.css";
 function Home() {
   const [data, setData] = useState([]);
   const [cart, setCart] = useState([]);
+  const [showPayment, setShowPayment] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState("");
 
   async function fetchData() {
     const result = await fetch("https://fakestoreapi.com/products");
@@ -29,8 +32,50 @@ function Home() {
     setCart(newCart);
   }
 
+  function increaseQuantity(id) {
+    setCart(
+      cart.map((item) =>
+        item.id === id ? { ...item, quantity: item.quantity + 1 } : item
+      )
+    );
+  }
+
+  function decreaseQuantity(id) {
+    setCart(
+      cart.map((item) =>
+        item.id === id && item.quantity > 1
+          ? { ...item, quantity: item.quantity - 1 }
+          : item
+      )
+    );
+  }
+
   function getTotalPrice() {
-    return cart.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2);
+    return cart
+      .reduce((total, item) => total + item.price * item.quantity, 0)
+      .toFixed(2);
+  }
+
+  function handleBuyNow(item) {
+    setCart([{ ...item, quantity: 1 }]); // Only the clicked item
+    setShowPayment(true);
+  }
+
+  function handleCheckout() {
+    if (cart.length === 0) {
+      alert("Your cart is empty!");
+      return;
+    }
+    setShowPayment(true);
+  }
+
+  function handleConfirmPayment() {
+    setShowPayment(false);
+    setShowSuccess(true);
+    setTimeout(() => {
+      setShowSuccess(false);
+      setCart([]); // Clear cart after order success
+    }, 3000);
   }
 
   return (
@@ -46,7 +91,9 @@ function Home() {
 
             <div className="btn-group">
               <button onClick={() => addToCart(item)}>Add to Cart</button>
-              <button className="buy-btn">Buy Now</button>
+              <button className="buy-btn" onClick={() => handleBuyNow(item)}>
+                Buy Now
+              </button>
             </div>
           </div>
         ))}
@@ -64,8 +111,11 @@ function Home() {
                 <div className="cart-details">
                   <h3>{item.title}</h3>
                   <p>${item.price}</p>
-                  <p>{item.category}</p>
-                  <span>{item.rating.rate}⭐</span>
+                  <div className="quantity-control">
+                    <button onClick={() => decreaseQuantity(item.id)}>-</button>
+                    <span>{item.quantity}</span>
+                    <button onClick={() => increaseQuantity(item.id)}>+</button>
+                  </div>
                 </div>
                 <button onClick={() => removeCart(item)}>🗑 Remove</button>
               </div>
@@ -73,16 +123,75 @@ function Home() {
           )}
         </div>
 
-        {/* Checkout Section */}
         {cart.length > 0 && (
           <div className="checkout-section">
             <h2>Order Summary</h2>
             <p>Total Items: {cart.length}</p>
             <h3>Total Price: ${getTotalPrice()}</h3>
-            <button className="checkout-btn">Proceed to Checkout</button>
+            <button className="checkout-btn" onClick={handleCheckout}>
+              Proceed to Checkout
+            </button>
           </div>
         )}
       </div>
+
+      {/* Payment Modal */}
+      {showPayment && (
+        <div className="payment-modal">
+          <div className="payment-content">
+            <h3>Select Payment Method</h3>
+            <label>
+              <input
+                type="radio"
+                name="payment"
+                value="UPI"
+                onChange={(e) => setSelectedPayment(e.target.value)}
+              />{" "}
+              UPI
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="payment"
+                value="Credit/Debit Card"
+                onChange={(e) => setSelectedPayment(e.target.value)}
+              />{" "}
+              Credit/Debit Card
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="payment"
+                value="Cash on Delivery"
+                onChange={(e) => setSelectedPayment(e.target.value)}
+              />{" "}
+              Cash on Delivery
+            </label>
+
+            <button
+              className="confirm-btn"
+              disabled={!selectedPayment}
+              onClick={handleConfirmPayment}
+            >
+              Confirm Payment
+            </button>
+            <button
+              className="cancel-btn"
+              onClick={() => setShowPayment(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Success Message */}
+      {showSuccess && (
+        <div className="success-popup">
+          <h3>✅ Order Successful!</h3>
+          <p>Thank you for shopping with us!</p>
+        </div>
+      )}
     </div>
   );
 }
